@@ -115,7 +115,7 @@ def chatbot_recommend(state: Recommend_Major_State):
     prompt = PromptTemplate(
         
         template=f"""
-        사용자 입력: {state["user_input"]}
+        사용자 입력: {{query}}
 
         검색된 전공 정보:
         {retrieved_info}
