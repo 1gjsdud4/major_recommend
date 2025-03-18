@@ -118,7 +118,7 @@ def delete_major_vectorstore(persist_directory: str, collection_name: str, ids: 
         existing_data = collection.get()
         existing_ids = set(existing_data["ids"]) if "ids" in existing_data else set()
 
-        missing_ids = set(ids) - existing_ids 
+        missing_ids = set(ids) - set(existing_ids) 
         
         if missing_ids:
             error_msg = f"Error: Some IDs do not exist in the collection: {missing_ids}"
@@ -131,7 +131,7 @@ def delete_major_vectorstore(persist_directory: str, collection_name: str, ids: 
     except Exception as e:
         print("Error in delete_major_vectorstore:", e)
         return {"error": str(e)}, 103
-
+    
 def search_vectorstore(persist_directory: str, collection_name: str, openai_api_key: str, prompt: str, k: int = 6):
     try:
         print("Searching vectorstore...")
@@ -141,6 +141,15 @@ def search_vectorstore(persist_directory: str, collection_name: str, openai_api_
         query_embeddings = embedding_model.embed_query(prompt)
         
         results = collection.query(query_embeddings=query_embeddings, n_results=k)
+
+        def flatten(nested_list):
+            return [item for sublist in nested_list for item in sublist] if isinstance(nested_list, list) and nested_list and isinstance(nested_list[0], list) else nested_list
+
+        results["ids"] = flatten(results.get("ids", []))
+        results["documents"] = flatten(results.get("documents", []))
+        results["metadatas"] = flatten(results.get("metadatas", []))
+        results["distances"] = flatten(results.get("distances", []))
+
         return results
     except Exception as e:
         print("Error in search_vectorstore:", e)
@@ -168,7 +177,6 @@ if __name__ == '__main__':
     test_prompt = "나는 컴퓨터를 좋아해"
     search_results = search_vectorstore(persist_dir, collection_name, openai_api_key, test_prompt, k=6)
     print("🔍 Search Results:", search_results)
-
     if search_results and "ids" in search_results and search_results["ids"]:
         delete_major_vectorstore(persist_dir, collection_name, search_results["ids"])
 
